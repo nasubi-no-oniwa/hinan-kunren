@@ -3,8 +3,15 @@ import { createRequire } from 'module';
 const require = createRequire(process.env.RUNNER_TEMP + '/x/');
 const { GoogleAuth } = require('google-auth-library');
 export const DBURL = 'https://ft-green-default-rtdb.asia-southeast1.firebasedatabase.app';
+// 鍵の中身を読む（最初の { や最後の } が抜けて貼られていても読めるようにする）
+function readKey() {
+  const raw = require('fs').readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8').trim();
+  const tries = [raw, '{' + raw + '}', '{' + raw, raw + '}', '{' + raw.replace(/,\s*$/, '') + '}'];
+  for (const x of tries) { try { const o = JSON.parse(x); if (o && o.private_key && o.client_email) return o; } catch (e) { } }
+  throw new Error('鍵の中身が読めません（FT_GREEN_SERVICE_ACCOUNT を貼りなおしてください）');
+}
 export async function token() {
-  const auth = new GoogleAuth({ keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS, scopes: ['https://www.googleapis.com/auth/firebase.database', 'https://www.googleapis.com/auth/userinfo.email'] });
+  const auth = new GoogleAuth({ credentials: readKey(), scopes: ['https://www.googleapis.com/auth/firebase.database', 'https://www.googleapis.com/auth/userinfo.email'] });
   const c = await auth.getClient(); const t = await c.getAccessToken(); return t.token || t;
 }
 export async function api(method, path, body, tk) {
