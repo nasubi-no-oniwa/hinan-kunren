@@ -19,6 +19,7 @@ ex('実際の時間より長い記録',await req('PUT','hk/sp/scores/'+U,U,rec(t
 ex('始めた時刻がちがう記録',await req('PUT','hk/sp/scores/'+U,U,rec(tk.st-5000,1000)),false);
 ex('ほかの人の場所に書く',await req('PUT','hk/sp/scores/'+U2,U,rec(tk.st,1000)),false);
 ex('ふつうの記録（1秒）',await req('PUT','hk/sp/scores/'+U,U,rec(tk.st,1000)),true);
+ex('まとめたランキングにも同じ形で書ける',await req('PUT','hk/all/scores/'+U,U,rec(tk.st,1000)),true);
 ex('同じ回でもう一度送る',await req('PUT','hk/sp/scores/'+U,U,rec(tk.st,1100)),false);
 ex('名前だけ変える',await req('PUT','hk/sp/scores/'+U,U,rec(tk.st,1000,'なまえ')),true);
 ex('名前を変えるふりで秒数を変える',await req('PUT','hk/sp/scores/'+U,U,rec(tk.st,1050,'なまえ')),false);

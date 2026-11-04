@@ -142,7 +142,7 @@ table.rank tr.top td{background:#fff7d6;font-weight:900}
 <div class="panel" id="rankPanel" hidden>
  <div class="card">
   <h2 id="rkTitle"></h2>
-  <div class="tabs"><button id="tabSp"></button><button id="tabPc"></button></div>
+  
   <p style="font-size:12px;margin:0 0 6px" id="rkNote"></p>
   <div id="rankBox"></div>
   <button class="sub" id="rankBack"></button>
@@ -230,7 +230,7 @@ function applyLang(){
  $('againBtn').textContent=t('again');$('vidBtn').textContent=t('video');$('xBtn').textContent=t('xpost');$('renameBtn').textContent=t('rename');
  $('rRank').textContent=t('rank');$('rTop').textContent=t('top');
  $('vTitle').textContent=t('video');$('vShare').textContent=t('share');$('vSave').textContent=t('save');$('vX').textContent=t('xpost');$('vBack').textContent=t('back');
- $('rkTitle').textContent=t('rank');$('tabSp').textContent=t('sp');$('tabPc').textContent=t('pc');$('rkNote').textContent=t('rkNote');$('rankBack').textContent=t('back');
+ $('rkTitle').textContent=t('rank');$('rkNote').textContent=t('rkNote');$('rankBack').textContent=t('back');
  $('replayBack').textContent=t('back');
  $('langs').innerHTML=LANGS.map(([k,l])=>'<button data-l="'+k+'"'+(k===lang?' class="on"':'')+'>'+l+'</button>').join('');
  showBest();
@@ -521,8 +521,8 @@ function frame(now){
 // ===== 画面の切りかえ =====
 const PANELS=['title','result','vidPanel','rankPanel'];
 function show(id){PANELS.forEach(p=>$(p).hidden=(p!==id));}
-let bestL=ls.get('hk_best',{});
-function showBest(){const b=bestL[isPC()?'pc':'sp'];const f=b?fmt(b)+t('sec'):t('none');$('tBest').textContent=t('best')+'：'+f;$('hudBest').textContent=t('best')+' '+f;}
+let bestL=ls.get('hk_best',{});if(bestL.all==null&&(bestL.sp||bestL.pc))bestL.all=Math.max(bestL.sp||0,bestL.pc||0);
+function showBest(){const b=bestL.all;const f=b?fmt(b)+t('sec'):t('none');$('tBest').textContent=t('best')+'：'+f;$('hudBest').textContent=t('best')+' '+f;}
 function showTitle(){mode='title';show('title');$('hud').hidden=true;$('ctrl').hidden=true;$('pcKeys').hidden=true;$('big').innerHTML='';$('alarm').classList.remove('on');
  $('nameIn').value=ls.get('hk_name','');showBest();SFX.muffle(false);
  // 後ろで訓練場を見せておく
@@ -530,8 +530,8 @@ function showTitle(){mode='title';show('title');$('hud').hidden=true;$('ctrl').h
 $('startBtn').onclick=()=>{const n=$('nameIn').value.trim();if(n&&!badName(n))ls.set('hk_name',n);ac();startCount();};
 $('againBtn').onclick=startCount;
 $('rTop').onclick=showTitle;
-$('rankBtn').onclick=()=>openRank(isPC()?'pc':'sp');
-$('rRank').onclick=()=>openRank(L.board||(isPC()?'pc':'sp'),true);
+$('rankBtn').onclick=()=>openRank('all');
+$('rRank').onclick=()=>openRank('all',true);
 $('rankBack').onclick=()=>{if(rankFrom)show('result');else showTitle();};
 function myName(){return ls.get('hk_name','')||t('anon');}
 function showResult(){
@@ -579,7 +579,7 @@ function takeTicket(){
 }
 let sendState={};
 async function submit(){
- const r=L.res,board=L.touch?'sp':(isPC()?'pc':'sp');L.board=board;
+ const r=L.res,board='all';L.board=board;
  const prev=bestL[board];r.newBest=!prev||r.ms>prev;
  if(r.newBest){bestL[board]=r.ms;ls.set('hk_best',bestL);}
  sendState={msg:'',cls:'',canRename:false};
@@ -628,9 +628,9 @@ async function loadBoard(board){
  return Object.entries(d||{}).map(([id,v])=>({...v,id})).filter(r=>!(h&&h[r.id])&&typeof r.s==='number').sort((a,b)=>b.s-a.s||a.t-b.t);
 }
 async function myRank(board,uid){try{const rows=await loadBoard(board);const i=rows.findIndex(r=>r.id===uid);return i>=0?i+2:null;}catch(e){return null;}}
-let rankFrom=false,rankRows=[],curBoard='sp';
+let rankFrom=false,rankRows=[],curBoard='all';
 async function openRank(board,fromResult){
- rankFrom=!!fromResult;curBoard=board;show('rankPanel');$('tabSp').classList.toggle('on',board==='sp');$('tabPc').classList.toggle('on',board==='pc');
+ rankFrom=!!fromResult;curBoard=board;show('rankPanel');
  const box=$('rankBox');box.innerHTML='<p>'+t('loading')+'</p>';
  try{
   const [rows,n]=await Promise.all([loadBoard(board),survCount().catch(()=>0)]);rankRows=rows;survN=n;const myId=(ls.get('hk_auth',null)||{}).uid;
@@ -640,7 +640,7 @@ async function openRank(board,fromResult){
   box.innerHTML=h+'</table>';
  }catch(e){box.innerHTML='<p>'+t('rankerr')+'</p>';}
 }
-$('tabSp').onclick=()=>openRank('sp',rankFrom);$('tabPc').onclick=()=>openRank('pc',rankFrom);
+
 $('rankBox').onclick=e=>{const b=e.target.closest('button[data-i]');if(!b)return;startReplay(rankRows[+b.dataset.i]);};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -742,9 +742,29 @@ function fitCamOnly(){
  camD=hi;placeCam(camD,0);
 }
 
+// ===== 宣伝動画を撮るための道具（遊びには使わない） =====
+const PV={};
+function pvInit(seed,enc,from,ghost){
+ mode='video';show(null);$('hud').hidden=true;$('ctrl').hidden=true;$('pcKeys').hidden=true;$('big').innerHTML='';clearFx();newRun();hole.visible=false;me.man.visible=true;
+ const o=enc?HK.dec(enc):null;const S=HK.create(seed);if(ghost)S.ghost=true;
+ for(let i=0;i<from;i++){if(o)HK.step(S,o.D[i],o.SL[i]);else HK.step(S,0,0);}
+ Object.assign(PV,{o,i:from,acc:0,dT:null});L.S=S;L.px=S.x;L.pz=S.z;L.deadT=null;
+}
+function pvFrame(dt){
+ const S=L.S,ev=[];let d2=dt;
+ if(PV.dT==null){PV.acc+=dt;while(PV.acc>=1/TICK){PV.acc-=1/TICK;L.px=S.x;L.pz=S.z;const k=PV.o&&PV.i<PV.o.D.length?PV.i:-1;HK.step(S,k>=0?PV.o.D[k]:0,k>=0?PV.o.SL[k]:0);PV.i++;
+  for(const x of S.ev){if(x.e==='boom'){boomFx(x.b);ev.push('b'+(x.b.k==='big'?2:x.b.k==='final'?3:1));}else if(x.e==='slide')ev.push('s');else if(x.e==='warn'&&(x.b.k==='big'||x.b.k==='aim'))ev.push('w');}
+  if(S.dead){PV.dT=0;ev.push('d');break;}}}
+ else{d2=dt*slowK(PV.dT);PV.dT+=d2;}
+ const a=PV.dT==null?Math.min(1,PV.acc*TICK):1;
+ syncBombs(S,PV.dT==null?S.tick-1+a:S.tick);poseMan({S,x:L.px+(S.x-L.px)*a,z:L.pz+(S.z-L.pz)*a,deadT:PV.dT,digT:null},d2);stepFx(d2);
+ shake=Math.max(0,shake-dt*2.5);placeCam(camD,shake*.5);R.render(S3,cam);
+ $('alarm').classList.toggle('on',!!S.final);
+ return {ev,tick:S.tick,dT:PV.dT,ms:HK.ms(S.tick)};
+}
 // ===== はじめ =====
 fit();applyLang();showTitle();try{R.compile(S3,cam);}catch(e){}requestAnimationFrame(frame);
-window.__hk={L,get mode(){return mode},HK,startDig,pressSlide,boomFx,stepFx,DBG,show,set joyDir(v){joyDir=v},get slid(){return slid}};
+window.__hk={L,get mode(){return mode},HK,startDig,pressSlide,boomFx,stepFx,DBG,show,pvInit,pvFrame,grade,t,set joyDir(v){joyDir=v},get slid(){return slid}};
 </script>
 </body>
 </html>

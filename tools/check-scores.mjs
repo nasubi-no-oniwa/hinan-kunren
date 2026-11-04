@@ -6,7 +6,7 @@ const HK = createRequire(import.meta.url)('../sim.js');
 const tk = await token();
 const ban = new Set((fs.existsSync('hk-remove.txt') ? fs.readFileSync('hk-remove.txt', 'utf8') : '').split(/\s+/).filter(x => /^[A-Za-z0-9]{20,40}$/.test(x)));
 let n = 0, rm = 0;
-for (const b of ['sp', 'pc']) {
+for (const b of ['all', 'sp', 'pc']) {
   const d = JSON.parse(await api('GET', '/hk/' + b + '/scores.json', undefined, tk)) || {};
   for (const [k, v] of Object.entries(d)) {
     n++; let why = '';
