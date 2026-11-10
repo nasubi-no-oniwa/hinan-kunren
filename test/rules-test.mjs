@@ -41,7 +41,7 @@ ex('生き残った人の数を読める',await req('GET','hk/surv',null),true);
 ex('hidden に書く',await req('PUT','hk/hidden/'+U,U,true),false);
 ex('ほかの場所に書く',await req('PUT','ft_cells/1/1',U,{n:1}),false);
 // 人数カウンターの試験
-{const INC={'.sv':{increment:1}};
+{const INC={'.sv':{increment:1}};const dk=()=>Math.floor((Date.now()+32400000)/86400000);
 ex('surv: はじめてで数を増やす',await req('PATCH','hk','cnt0axxxxxxxxxxxxxxxx',{['surv/'+'cnt0axxxxxxxxxxxxxxxx']:{t:TS},'survc':INC,'survt':{dk:dk(),n:1}}),true);
 ex('surv: 記録なしで数だけ増やす',await req('PUT','hk/survc','cnt0byyyyyyyyyyyyyyyy',5),false);
 await sleep(2100);
