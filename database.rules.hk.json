@@ -126,5 +126,26 @@
         }
       }
     }
+  },
+  "survc": {
+    ".read": true,
+    ".write": "auth != null && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1 && !data.parent().child('surv/' + auth.uid).exists() && newData.parent().child('surv/' + auth.uid + '/t').val() === now"
+  },
+  "survt": {
+    ".read": true,
+    ".write": "auth != null && newData.child('dk').isNumber() && newData.child('dk').val() * 86400000 <= now + 32400000 && (newData.child('dk').val() + 1) * 86400000 > now + 32400000 && newData.child('n').val() === ((data.exists() && data.child('dk').val() === newData.child('dk').val()) ? data.child('n').val() + 1 : 1) && (!data.parent().child('surv/' + auth.uid).exists() || data.parent().child('surv/' + auth.uid + '/t').val() < newData.child('dk').val() * 86400000 - 32400000) && newData.parent().child('surv/' + auth.uid + '/t').val() === now",
+    ".validate": "newData.hasChildren(['dk', 'n'])",
+    "dk": {
+      ".validate": "newData.isNumber()"
+    },
+    "n": {
+      ".validate": "newData.isNumber()"
+    },
+    "$other": {
+      ".validate": false
+    }
+  },
+  "top": {
+    ".read": true
   }
 }
