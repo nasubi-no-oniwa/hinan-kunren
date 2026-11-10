@@ -5,7 +5,9 @@ const tk = await token();
 const today = Math.floor((Date.now() + 32400000) / 86400000), d0 = today * 86400000 - 32400000;
 for (const X of NODES) {
   const all = JSON.parse(await api('GET', `/${ROOT}/${X}.json?shallow=true`, undefined, tk)) || {};
-  const td = JSON.parse(await api('GET', `/${ROOT}/${X}.json?orderBy=%22t%22&startAt=${d0}`, undefined, tk)) || {};
+  let td;
+  try { td = JSON.parse(await api('GET', `/${ROOT}/${X}.json?orderBy=%22t%22&startAt=${d0}`, undefined, tk)) || {}; }
+  catch (e) { const full = JSON.parse(await api('GET', `/${ROOT}/${X}.json`, undefined, tk)) || {}; td = Object.fromEntries(Object.entries(full).filter(([k, v]) => v && v.t >= d0)); }
   const n = Object.keys(all).length, m = Object.keys(td).length;
   await api('PUT', `/${ROOT}/${X}c.json`, JSON.stringify(n), tk);
   await api('PUT', `/${ROOT}/${X}t.json`, JSON.stringify({ dk: today, n: m }), tk);
